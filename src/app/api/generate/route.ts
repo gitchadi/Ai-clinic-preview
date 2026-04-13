@@ -1,111 +1,134 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
-import FormData from 'form-data';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
-const STABILITY_KEY = process.env.STABILITY_API_KEY;
+// التنظيف التلقائي لأي مسافة منسوخة بالغلط
+const STABILITY_KEY = (process.env.STABILITY_API_KEY || "").trim();
 const STABILITY_URL = "https://api.stability.ai/v2beta/stable-image/edit/search-and-replace";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
-const TREATMENT_PROMPTS: Record<string, { search: string; replace: string }> = {
-  whitening: { search: 'teeth', replace: 'glowing natural bright white teeth, highly detailed' },
-  veneers: { search: 'teeth', replace: 'perfect symmetric hollywood smile veneers, highly uniform teeth' },
-  braces: { search: 'teeth', replace: 'teeth with realistic metallic orthodontic braces and wires' },
-  invisalign: { search: 'teeth', replace: 'teeth wearing clear transparent invisalign aligners' },
-  gums: { search: 'gums', replace: 'healthy light coral pink gums, natural realistic texture' },
-  implants: { search: 'missing teeth, gaps, broken teeth', replace: 'full set of natural perfect teeth, flawless restoration' },
-};
+const GEMINI_KEY = (process.env.GEMINI_API_KEY || "").trim();
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 
 export async function POST(request: Request) {
   try {
     const body = await request.formData();
-    const image = body.get('image') as Blob;
-    const treatmentTypesString = body.get('treatmentTypes') as string;
+    // استخدام الملف الأصلي مباشرة
+    const image = body.get('image') as File;
 
-    if (!image || !treatmentTypesString) {
-      return NextResponse.json({ error: "Missing image or treatments" }, { status: 400 });
-    }
+    if (!image) return NextResponse.json({ error: "Missing image" }, { status: 400 });
 
     const arrayBuffer = await image.arrayBuffer();
     const imageBuffer = Buffer.from(arrayBuffer);
     const mimeType = image.type || 'image/jpeg';
 
-    // 1. GEMINI AI: Real Diagnosis (With Smart Retry Mechanism)
-    let realSmileScore = 75;
-    let aiAnalysisText = "Analisi completata.";
-    let geminiSuccess = false;
-    const maxRetries = 3;
+    let isRejection = false; 
+    let rejectionReason = ""; 
+    let realScore = 85; 
+    let realAnalysis = "Analisi estetica completata con successo."; 
+    let realTreats = ["Restauro Estetico Completo"]; 
+    let visibleArch = "both";
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-2.5-flash", // أحدث وأسرع موديل
-          safetySettings: [
-            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE }
-          ]
-        });
-        
-        const prompt = "Analyze this portrait photo as a dental aesthetics expert. Focus strictly on teeth color, dental alignment, spaces/gaps, and gum health visible in the smile. Be concise, professional, and focus only on aesthetic improvements. Do not give medical advice. Provide a score out of 100 representing the current aesthetic health. Response format must be strictly valid JSON like this: {\"score\": 75, \"analysis\": \"string\"}. DO NOT wrap the response in markdown blocks.";
-        const imagePart = { inlineData: { data: imageBuffer.toString("base64"), mimeType } };
-        
-        const result = await model.generateContent([prompt, imagePart]);
-        let text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-        const cleanJson = text.match(/\{[\s\S]*\}/);
-        
-        if (cleanJson) {
-          const parsed = JSON.parse(cleanJson[0]);
-          realSmileScore = parsed.score;
-          aiAnalysisText = parsed.analysis;
-          geminiSuccess = true;
-          console.log(`✅ Gemini نجح في المحاولة رقم ${attempt}`);
-          break; // نخرج من اللوب لو نجح
-        }
-      } catch (e: any) {
-        console.warn(`⚠️ محاولة Gemini رقم ${attempt} فشلت:`, e.message);
-        if (attempt < maxRetries) {
-          // نستنى ثانية ونص قبل المحاولة الجاية
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
+    // =====================================================================
+    // 1. GEMINI GATEKEEPER
+    // =====================================================================
+    console.log("⏳ 1. جاري فحص الصورة بواسطة Gemini...");
+    try {
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash", 
+        generationConfig: { responseMimeType: "application/json" },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE }
+        ]
+      });
+      
+      const prompt = `Analyze this portrait photo as a dental aesthetics expert. 
+      DEVI RISPONDERE SOLO IN LINGUA ITALIANA. Return strictly valid JSON like this: 
+      {
+        "is_valid": boolean (TRUE only if mouth is clearly open and teeth are visible),
+        "visible_arch": "upper_only" | "both" | "none",
+        "error_reason": "string (If invalid, state 'Bocca chiusa o denti non visibili.')",
+        "score": number,
+        "analysis": "string",
+        "treatments": ["string"]
+      }`;
+      
+      const imagePart = { inlineData: { data: imageBuffer.toString("base64"), mimeType } };
+      const result = await model.generateContent([prompt, imagePart]);
+      
+      let text = result.response.text().replace(/```json/gi, '').replace(/```/gi, '').trim();
+      const parsed = JSON.parse(text);
+      
+      if (parsed.is_valid === false || parsed.visible_arch === "none") {
+        isRejection = true;
+        rejectionReason = parsed.error_reason || "Bocca chiusa o denti non visibili. Carica un'altra foto.";
+      } else {
+        realScore = parsed.score || 85;
+        realAnalysis = parsed.analysis || realAnalysis;
+        visibleArch = parsed.visible_arch || "both";
+        if (parsed.treatments && Array.isArray(parsed.treatments)) realTreats = parsed.treatments;
       }
+      
+      console.log("✅ Gemini انتهى من الفحص بنجاح.");
+    } catch (e: any) {
+      console.error("🚨 Gemini Error:", e.message);
+      isRejection = true;
+      rejectionReason = `Errore di analisi IA: Riprova tra poco.`; 
     }
 
-    // لو فشل في الـ 3 محاولات، نستخدم التشخيص البديل
-    if (!geminiSuccess) {
-      console.error("❌ Gemini فشل تماماً بعد 3 محاولات، هنستخدم التشخيص البديل.");
-      aiAnalysisText = "Rilevate imperfezioni estetiche. L'applicazione dei trattamenti migliorerà l'armonia del sorriso.";
+    if (isRejection) {
+      return NextResponse.json({ is_rejected: true, message: rejectionReason }, { status: 200 });
     }
 
-    // 2. STABILITY AI: Real Image Generation
-    const selectedTypes = treatmentTypesString.split(',');
-    const searchTargets = Array.from(new Set(selectedTypes.map(t => TREATMENT_PROMPTS[t]?.search || 'teeth')));
-    const replacePrompts = selectedTypes.map(t => TREATMENT_PROMPTS[t]?.replace || 'perfect teeth');
+    // =====================================================================
+    // 2. STABILITY AI (استخدام Native Fetch لضمان عدم حدوث Invalid URL)
+    // =====================================================================
+    console.log("⏳ 2. جاري توليد الابتسامة بواسطة Stability AI...");
+    let searchPrompt = 'teeth, broken teeth, missing teeth, dark gaps, weird tongue';
+    let replacePrompt = 'perfect natural white upper and lower teeth, healthy gums, anatomically correct mouth, 8k photorealistic';
 
-    const formData = new FormData();
-    formData.append('image', imageBuffer, { filename: 'patient.png' });
-    formData.append('search_prompt', searchTargets.join(', ')); 
-    formData.append('prompt', `${replacePrompts.join(' AND ')}, photorealistic medical quality, flawless dental restoration`);
-    formData.append('output_format', 'png');
+    if (visibleArch === "upper_only") {
+      searchPrompt = 'upper teeth, broken teeth, empty gaps';
+      replacePrompt = 'perfect natural white upper teeth only, anatomically correct, highly detailed 8k';
+    }
 
-    const stabilityResponse = await axios.post(STABILITY_URL, formData, {
-        headers: { Authorization: `Bearer ${STABILITY_KEY}`, ...formData.getHeaders(), Accept: "image/*" },
-        responseType: "arraybuffer",
-        validateStatus: undefined
+    const nativeFormData = new FormData();
+    // إرسال الملف مباشرة بدون مكتبات خارجية
+    nativeFormData.append('image', image);
+    nativeFormData.append('search_prompt', searchPrompt);
+    nativeFormData.append('prompt', replacePrompt);
+    nativeFormData.append('output_format', 'png');
+
+    const stabilityResponse = await fetch(STABILITY_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${STABILITY_KEY}`,
+        'Accept': 'image/*'
+      },
+      body: nativeFormData
     });
 
-    if (stabilityResponse.status === 200) {
-        const resultBase64 = Buffer.from(stabilityResponse.data).toString('base64');
-        const outputUrl = `data:image/png;base64,${resultBase64}`;
-        return NextResponse.json({ outputUrl, realSmileScore, aiAnalysisText });
-    } else {
-        throw new Error(`Stability API Error: ${stabilityResponse.status} - ${JSON.stringify(stabilityResponse.data)}`);
+    if (!stabilityResponse.ok) {
+      const errorText = await stabilityResponse.text();
+      throw new Error(`Stability API Error: ${stabilityResponse.status} - ${errorText}`);
     }
 
+    const arrayBufferRes = await stabilityResponse.arrayBuffer();
+    const resultBase64 = Buffer.from(arrayBufferRes).toString('base64');
+    const outputUrl = `data:image/png;base64,${resultBase64}`;
+
+    console.log("✅ الصورة تم تعديلها بنجاح!");
+    return NextResponse.json({ 
+      outputUrl, 
+      realSmileScore: realScore, 
+      aiAnalysisText: realAnalysis, 
+      autoTreatments: realTreats,
+      is_rejected: false 
+    });
+
   } catch (error: any) {
-    console.error("Server Error:", error.message);
+    console.error("🚨 Server Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

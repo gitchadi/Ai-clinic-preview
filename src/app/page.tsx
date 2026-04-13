@@ -1,24 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UploadCloud, Sparkles, Smile, Wrench, ScanFace, Droplet, ShieldPlus, Download, CheckCircle, Activity, FileText, ShieldAlert, User, Phone, Lock, AlertCircle } from 'lucide-react';
+import { UploadCloud, Sparkles, Download, CheckCircle, Activity, ShieldAlert, User, Phone, Lock, AlertCircle, Wand2 } from 'lucide-react';
 import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider';
 import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 
-const TREATMENTS = [
-  { id: 'whitening', title: 'Sbiancamento Dentale', desc: 'Smalto bianco e luminoso', icon: <Sparkles size={24} /> },
-  { id: 'veneers', title: 'Faccette Hollywood', desc: 'Sorriso simmetrico perfetto', icon: <Smile size={24} /> },
-  { id: 'braces', title: 'Apparecchio Metallico', desc: 'Allineamento ortodontico', icon: <Wrench size={24} /> },
-  { id: 'invisalign', title: 'Allineatori Trasparenti', desc: 'Correzione invisibile', icon: <ScanFace size={24} /> },
-  { id: 'gums', title: 'Depigmentazione Gengivale', desc: 'Gengive rosa e sane', icon: <Droplet size={24} /> },
-  { id: 'implants', title: 'Impianti e Ponti', desc: 'Riempimento spazi', icon: <ShieldPlus size={24} /> },
-];
-
 export default function Page() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedTreatments, setSelectedTreatments] = useState<string[]>(['whitening']);
   const [gdprConsent, setGdprConsent] = useState<boolean>(false);
   
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'generating' | 'lead_capture' | 'done'>('idle');
@@ -27,11 +17,10 @@ export default function Page() {
   
   const [smileScore, setSmileScore] = useState<number | null>(null);
   const [aiDiagnosis, setAiDiagnosis] = useState<string | null>(null);
+  const [appliedTreatments, setAppliedTreatments] = useState<string[]>([]); 
 
   const [patientName, setPatientName] = useState<string>('');
   const [patientPhone, setPatientPhone] = useState<string>('');
-  
-  // New state for showing validation errors elegantly
   const [formError, setFormError] = useState<string | null>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,43 +33,35 @@ export default function Page() {
       setResultUrl(null);
       setSmileScore(null);
       setAiDiagnosis(null);
+      setAppliedTreatments([]);
       setPatientName('');
       setPatientPhone('');
       setFormError(null);
     }
   };
 
-  const toggleTreatment = (id: string) => {
-    setSelectedTreatments(prev => 
-      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
-    );
-  };
-
   const handleGenerate = async () => {
     if (!selectedImage) return;
-    if (selectedTreatments.length === 0) return;
     if (!gdprConsent) return;
 
     setStatus('analyzing');
     const scanningSteps = [
-      "Scansione volumetrica in corso...", 
-      "Calcolo dell'indice estetico...", 
-      "Analisi clinica IA del sorriso...",
-      "Preparazione della simulazione..."
+      "Scansione IA del viso in corso...", 
+      "Rilevamento imperfezioni dentali...", 
+      "Elaborazione piano di trattamento automatico...",
+      "Applicazione della Magia Clinica..."
     ];
     
     for (let i = 0; i < scanningSteps.length; i++) {
       setAnalysisText(scanningSteps[i]);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1200));
     }
 
     setStatus('generating');
-    setAnalysisText("Applicazione della simulazione clinica...");
     
     try {
       const formData = new FormData();
       formData.append('image', selectedImage);
-      formData.append('treatmentTypes', selectedTreatments.join(','));
 
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -89,12 +70,23 @@ export default function Page() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // =====================================================================
+        // 🔥 GOD MODE: حائط الصد لو جيميناي رفض الصورة (الفم مقفول)
+        // =====================================================================
+        if (data.is_rejected) {
+          alert("❌ Attenzione: " + data.message); // بيطلع للمريض رسالة بالإيطالي
+          setStatus('idle'); // بنرجع الموقع لحالته الأولى عشان يقدر يرفع صورة تانية
+          return; // بنوقف التنفيذ فوراً
+        }
+
         setResultUrl(data.outputUrl);
         setSmileScore(data.realSmileScore || 98);
         setAiDiagnosis(data.aiAnalysisText || "Simulazione completata con successo.");
+        setAppliedTreatments(data.autoTreatments || ["Restauro Estetico Completo"]);
         setStatus('lead_capture'); 
       } else {
-        alert("Ops! Errore di elaborazione.");
+        alert("Ops! Errore di elaborazione. Riprova con un'altra foto.");
         setStatus('idle');
       }
     } catch (error) {
@@ -104,30 +96,24 @@ export default function Page() {
     }
   };
 
-  // ADVANCED VALIDATION (Italian Standards)
   const handleLeadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
-    // 1. Name Validation (Only letters and spaces, min 3 chars)
     const nameRegex = /^[a-zA-Z\s\u00C0-\u024F]{3,}$/;
     if (!nameRegex.test(patientName.trim())) {
       setFormError("Inserisci un nome valido (solo lettere, min 3 caratteri).");
       return;
     }
 
-    // 2. Italian Phone Validation
-    // Cleans spaces or dashes
     const cleanPhone = patientPhone.replace(/[\s\-]/g, '');
-    // Matches: optional +39 or 0039, followed by 3, followed by 8 or 9 digits.
     const phoneRegex = /^(?:\+39|0039)?3\d{8,9}$/;
     
     if (!phoneRegex.test(cleanPhone)) {
-      setFormError("Inserisci un cellulare italiano valido (es. +39 333 1234567 o 3331234567).");
+      setFormError("Inserisci un cellulare italiano valido (es. +39 333 1234567).");
       return;
     }
 
-    console.log("🔥 NUOVO LEAD VALIDO:", { nome: patientName, telefono: cleanPhone });
     setStatus('done');
   };
 
@@ -160,9 +146,9 @@ export default function Page() {
     pdf.text(textLines, 20, 87);
     const offset = textLines.length * 5;
     
-    const selectedNames = TREATMENTS.filter(t => selectedTreatments.includes(t.id)).map(t => t.title).join(' + ');
+    const selectedNames = appliedTreatments.join(' + ');
     pdf.setFont("helvetica", "bold");
-    pdf.text(`Trattamenti Consigliati: ${selectedNames}`, 20, 90 + offset);
+    pdf.text(`Trattamenti Consigliati dall'IA: ${selectedNames}`, 20, 90 + offset);
     pdf.text(`Punteggio Sorriso Finale Previsto: 98/100`, 20, 97 + offset);
 
     pdf.text("PRIMA:", 20, 115 + offset);
@@ -197,8 +183,6 @@ export default function Page() {
     pdf.setFontSize(8);
     pdf.setTextColor(150, 150, 150);
     pdf.text("Disclaimer: Il risultato dell'IA è solo illustrativo. Non costituisce diagnosi medica definitiva.", 20, 280);
-    pdf.text("Privacy: Immagine elaborata nel rispetto del GDPR. Nessun dato biometrico è archiviato.", 20, 285);
-
     pdf.save(`Report_IA_${patientName.replace(/\s+/g, '_')}.pdf`);
   };
 
@@ -206,82 +190,72 @@ export default function Page() {
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-12 font-sans">
       <div className="max-w-6xl mx-auto">
         
-        <div className="text-center mb-10 flex flex-col items-center justify-center">
-          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">
+        <div className="text-center mb-10 flex flex-col items-center justify-center animate-in slide-in-from-top-4 duration-700">
+          <h1 className="text-5xl font-extrabold text-slate-800 tracking-tight mb-2">
             Clinica Dentale IA <span className="text-blue-600">Pro</span>
           </h1>
-          <p className="mt-3 text-slate-500 text-lg font-medium max-w-2xl">
-            Simulazione Clinica Avanzata e Analisi Estetica del Sorriso.
+          <p className="mt-3 text-slate-500 text-lg font-medium max-w-2xl bg-blue-50 px-4 py-2 rounded-full border border-blue-100">
+            ✨ Il primo sistema Magico 1-Click per il tuo nuovo sorriso
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[2fr,3fr] gap-10">
           
           <div className="space-y-6">
-            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center bg-white relative hover:bg-slate-50 transition-colors">
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            <div className="border-2 border-dashed border-slate-300 rounded-3xl p-6 text-center bg-white relative hover:bg-slate-50 hover:border-blue-400 transition-all group overflow-hidden">
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
               {previewUrl ? (
-                <img src={previewUrl} alt="Anteprima" className="h-48 object-cover rounded-xl mx-auto shadow-sm" />
+                <img src={previewUrl} alt="Anteprima" className="h-64 object-cover rounded-2xl mx-auto shadow-md group-hover:scale-[1.02] transition-transform" />
               ) : (
-                <div className="py-8 text-slate-500">
-                  <UploadCloud size={48} className="mx-auto mb-4 opacity-70" />
-                  <p className="font-medium text-lg">Carica foto del paziente</p>
-                  <p className="text-sm mt-1">Formati supportati: JPG, PNG</p>
+                <div className="py-12 text-slate-500 flex flex-col items-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
+                    <UploadCloud size={40} className="text-blue-500" />
+                  </div>
+                  <p className="font-bold text-xl text-slate-700">Carica una foto</p>
+                  <p className="text-sm mt-2 text-slate-400 max-w-[200px] leading-relaxed">Il nostro sistema IA rileverà automaticamente i difetti e li correggerà.</p>
                 </div>
               )}
             </div>
 
             {(smileScore || aiDiagnosis) && status === 'done' && (
-              <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col gap-5 shadow-sm animate-in fade-in">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col gap-5 shadow-lg animate-in fade-in slide-in-from-left-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 rounded-full bg-green-100 text-green-600">
+                  <div className="p-4 rounded-full bg-blue-100 text-blue-600">
                     <Activity size={32} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-slate-500 font-semibold">Punteggio Sorriso (IA)</p>
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 mt-2 overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-1000 bg-green-500" style={{ width: `${smileScore}%` }}></div>
+                    <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Punteggio Iniziale</p>
+                    <div className="w-full bg-slate-100 rounded-full h-3 mt-2 overflow-hidden shadow-inner">
+                      <div className="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-red-400 via-yellow-400 to-green-500" style={{ width: `${smileScore}%` }}></div>
                     </div>
                   </div>
-                  <div className="text-3xl font-bold">{smileScore}%</div>
+                  <div className="text-4xl font-black text-slate-800">{smileScore}%</div>
                 </div>
                 
                 {aiDiagnosis && (
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                    <h4 className="font-bold text-slate-700 flex items-center gap-2 mb-2"><FileText size={18} /> Analisi Estetica:</h4>
-                    <p className="text-slate-600 text-sm leading-relaxed">{aiDiagnosis}</p>
+                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+                    <h4 className="font-black text-slate-800 flex items-center gap-2 mb-3"><Wand2 size={20} className="text-blue-500" /> Trattamenti IA Applicati:</h4>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {appliedTreatments.map((t, idx) => (
+                        <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">{t}</span>
+                      ))}
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed border-t border-slate-200 pt-3">{aiDiagnosis}</p>
                   </div>
                 )}
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              {TREATMENTS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => toggleTreatment(t.id)}
-                  disabled={status === 'lead_capture' || status === 'done'}
-                  className={`flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left ${
-                    selectedTreatments.includes(t.id) ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300'
-                  } ${status === 'lead_capture' || status === 'done' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <div className={`mb-2 ${selectedTreatments.includes(t.id) ? 'text-blue-600' : 'text-slate-400'}`}>{t.icon}</div>
-                  <span className="font-semibold text-slate-800 text-sm">{t.title}</span>
-                  <span className="text-xs text-slate-500 mt-1 leading-tight">{t.desc}</span>
-                </button>
-              ))}
-            </div>
-
             {status !== 'lead_capture' && status !== 'done' && (
-              <div className="flex items-start gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm mt-4">
+              <div className="flex items-start gap-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-4 transition-all hover:shadow-md">
                 <input
                   type="checkbox"
                   id="gdpr"
                   checked={gdprConsent}
                   onChange={(e) => setGdprConsent(e.target.checked)}
-                  className="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 cursor-pointer"
+                  className="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 cursor-pointer focus:ring-blue-500"
                 />
-                <label htmlFor="gdpr" className="text-xs text-slate-500 leading-snug cursor-pointer">
+                <label htmlFor="gdpr" className="text-xs text-slate-500 leading-relaxed cursor-pointer">
                   Acconsento al trattamento dell'immagine per la simulazione estetica ai sensi del <strong className="text-slate-700">GDPR (Regolamento UE 2016/679)</strong>.
                 </label>
               </div>
@@ -290,60 +264,58 @@ export default function Page() {
             {status !== 'lead_capture' && status !== 'done' && (
               <button 
                 onClick={handleGenerate}
-                disabled={!selectedImage || selectedTreatments.length === 0 || !gdprConsent || status === 'analyzing' || status === 'generating'}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-4 rounded-xl shadow-lg transition-all text-lg flex justify-center items-center gap-2"
+                disabled={!selectedImage || !gdprConsent || status === 'analyzing' || status === 'generating'}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-300 text-white font-black py-5 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all text-xl flex justify-center items-center gap-3 disabled:hover:translate-y-0"
               >
-                {status === 'idle' && <span className="flex items-center gap-2"><Sparkles /> Genera Simulazione</span>}
-                {(status === 'analyzing' || status === 'generating') && <span className="animate-pulse">{analysisText}</span>}
+                {status === 'idle' && <span className="flex items-center gap-2"><Wand2 size={24} /> Magia Automatica (1-Click)</span>}
+                {(status === 'analyzing' || status === 'generating') && <span className="flex items-center gap-2"><Sparkles className="animate-spin" size={24} /> {analysisText}</span>}
               </button>
             )}
             
             {status === 'done' && (
-              <div className="w-full bg-green-100 text-green-700 font-bold py-4 rounded-xl shadow-sm text-lg flex justify-center items-center gap-2">
-                <CheckCircle /> Risultato Sbloccato
+              <div className="w-full bg-green-50 border-2 border-green-500 text-green-700 font-black py-5 rounded-2xl shadow-md text-xl flex justify-center items-center gap-3 animate-in zoom-in">
+                <CheckCircle size={28} /> Sorriso Perfetto Generato!
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl p-6 border border-slate-100 flex flex-col justify-center items-center min-h-[600px] relative overflow-hidden">
+          <div className="bg-white rounded-[2rem] shadow-2xl p-6 border border-slate-100 flex flex-col justify-center items-center min-h-[600px] relative overflow-hidden">
             
-            {/* LEAD CAPTURE WITH VALIDATION */}
             {status === 'lead_capture' && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-8 bg-white/95 backdrop-blur-md animate-in fade-in zoom-in duration-500">
-                <div className="bg-white border-2 border-blue-100 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
-                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                    <Lock size={32} />
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-8 bg-slate-900/40 backdrop-blur-xl animate-in fade-in duration-500">
+                <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-md text-center transform transition-all animate-in zoom-in-95">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-white">
+                    <Lock size={36} />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-2">Risultato Pronto!</h3>
-                  <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                    Inserisci i tuoi dati corretti per sbloccare la foto e scaricare il referto.
+                  <h3 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Quasi Fatto!</h3>
+                  <p className="text-slate-500 text-sm mb-8 leading-relaxed px-4">
+                    La magia IA è pronta. Inserisci i tuoi dati corretti per sbloccare la foto del tuo nuovo sorriso e scaricare il referto medico.
                   </p>
                   
                   <form onSubmit={handleLeadSubmit} className="space-y-4">
-                    <div className="relative">
-                      <User className="absolute left-3 top-3.5 text-slate-400" size={20} />
+                    <div className="relative group">
+                      <User className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                       <input 
                         type="text" 
                         placeholder="Nome e Cognome" 
                         value={patientName}
                         onChange={(e) => setPatientName(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border ${formError && patientName.length < 3 ? 'border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100'} outline-none transition-all focus:ring-4`}
+                        className={`w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-2 ${formError && patientName.length < 3 ? 'border-red-400 bg-red-50' : 'border-slate-100 focus:border-blue-500 focus:bg-white'} outline-none transition-all font-medium`}
                       />
                     </div>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3.5 text-slate-400" size={20} />
+                    <div className="relative group">
+                      <Phone className="absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                       <input 
                         type="tel" 
-                        placeholder="Numero di Cellulare (es. 3331234567)" 
+                        placeholder="Cellulare (es. 3331234567)" 
                         value={patientPhone}
                         onChange={(e) => setPatientPhone(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border ${formError && patientPhone.length < 9 ? 'border-red-400 focus:ring-red-100' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-100'} outline-none transition-all focus:ring-4`}
+                        className={`w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl border-2 ${formError && patientPhone.length < 9 ? 'border-red-400 bg-red-50' : 'border-slate-100 focus:border-blue-500 focus:bg-white'} outline-none transition-all font-medium`}
                       />
                     </div>
                     
-                    {/* Error Message Box */}
                     {formError && (
-                      <div className="flex items-start gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-xs text-left animate-in slide-in-from-top-1">
+                      <div className="flex items-start gap-2 text-red-600 bg-red-50 p-4 rounded-xl text-xs text-left font-semibold border border-red-100">
                         <AlertCircle size={16} className="mt-0.5 shrink-0" />
                         <p>{formError}</p>
                       </div>
@@ -351,9 +323,9 @@ export default function Page() {
 
                     <button 
                       type="submit" 
-                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all shadow-lg mt-2"
+                      className="w-full bg-slate-900 hover:bg-black text-white font-black py-4 rounded-2xl flex justify-center items-center gap-2 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 mt-4 text-lg"
                     >
-                      <Sparkles size={20} /> Sblocca il Risultato
+                      Sblocca Risultato <Sparkles size={20} />
                     </button>
                   </form>
                 </div>
@@ -361,31 +333,42 @@ export default function Page() {
             )}
 
             {status === 'lead_capture' && previewUrl && (
-              <div className="absolute inset-0 opacity-20 filter blur-xl scale-110" style={{ backgroundImage: `url(${previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+              <div className="absolute inset-0 opacity-30 filter blur-3xl scale-125" style={{ backgroundImage: `url(${previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
             )}
 
             {status === 'done' && resultUrl && previewUrl && aiDiagnosis ? (
-              <div className="w-full animate-in fade-in zoom-in duration-700 text-center z-0">
-                <div className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border-4 border-white mb-8 mx-auto">
+              <div className="w-full animate-in fade-in zoom-in duration-700 text-center z-0 flex flex-col items-center justify-center">
+                <div className="w-full max-w-[450px] rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white mb-8 mx-auto relative group">
+                  <div className="absolute top-4 left-4 z-20 bg-black/50 text-white px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">PRIMA</div>
+                  <div className="absolute top-4 right-4 z-20 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg shadow-blue-500/50">DOPO (IA)</div>
                   <ReactCompareSlider
                     itemOne={<ReactCompareSliderImage src={previewUrl} alt="Prima" />}
                     itemTwo={<ReactCompareSliderImage src={resultUrl} alt="Dopo" />}
                     className="w-full h-auto aspect-square object-cover"
                   />
                 </div>
-                <button onClick={generatePDF} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-3 transition-colors max-w-sm mx-auto shadow-lg">
-                  <Download size={22} /> Scarica Referto PDF con QR
+                <button onClick={generatePDF} className="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black text-lg flex justify-center items-center gap-3 transition-all max-w-md mx-auto shadow-xl hover:shadow-2xl hover:-translate-y-1">
+                  <Download size={24} /> Scarica Referto PDF con QR
                 </button>
               </div>
             ) : (
               status !== 'lead_capture' && (
-                <div className="text-center text-slate-400">
+                <div className="text-center text-slate-300 flex flex-col items-center">
                   {status === 'analyzing' || status === 'generating' ? (
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="relative">
+                      <div className="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-blue-600 mx-auto"></div>
+                      <div className="absolute inset-0 flex items-center justify-center text-blue-600 animate-pulse">
+                        <Wand2 size={32} />
+                      </div>
+                    </div>
                   ) : (
-                    <ShieldAlert size={64} className="mx-auto opacity-40 mb-4" />
+                    <>
+                      <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                        <ShieldAlert size={64} className="opacity-20 text-slate-600" />
+                      </div>
+                      <p className="text-lg font-bold text-slate-400">La magia apparirà qui</p>
+                    </>
                   )}
-                  <p className="mt-2 text-sm font-medium">La simulazione apparirà qui</p>
                 </div>
               )
             )}
