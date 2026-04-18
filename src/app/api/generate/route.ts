@@ -16,7 +16,8 @@ const STABILITY_URL =
 const GEMINI_KEY = (process.env.GEMINI_API_KEY || "").trim();
 const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 
-const MAX_GENERATION_ATTEMPTS = 3;
+const MAX_GENERATION_ATTEMPTS = 2;
+const ACCEPTABLE_PREVIEW_SCORE = 60;
 
 type VisibleArch = "upper_only" | "both" | "none";
 
@@ -311,9 +312,11 @@ function buildQualityPrompt(analysis: DentalAnalysis) {
   return `You are a strict dental anatomy QA reviewer for an AI smile preview.
 Compare the original photo and the generated result. Return only valid JSON in Italian, no markdown.
 
-Approve only if the generated image is anatomically correct and commercially usable for a dental preview.
+This is an illustrative lead-generation preview, not a clinical treatment plan.
+Approve results that are commercially usable, believable at first glance, and not obviously wrong.
+Do not demand perfect clinical accuracy. Minor imperfections are acceptable if the smile still fits the patient's face and the main anterior anatomy is not badly distorted.
 
-Critical rejection criteria:
+Critical issues that should lower the score strongly:
 - duplicated central incisors
 - four identical upper front teeth
 - missing lateral incisors when the original anatomy implies they should be visible
@@ -324,6 +327,15 @@ Critical rejection criteria:
 - smile that does not match patient's genetic/facial harmony
 - distorted gums, tongue, bite, arch curvature, or tooth boundaries
 - result looks like generic Hollywood smile instead of this specific patient
+
+Scoring policy:
+- 85-100: excellent preview, approve.
+- 70-84: good commercial preview with minor imperfections, approve.
+- 60-69: acceptable compromise, approve if there are no severe face/lip distortions and no obvious extra teeth.
+- 40-59: weak result, retry if attempts remain.
+- 0-39: unusable.
+
+Set "approved": true for score 60 or above unless there is a severe obvious artifact.
 
 Expected source context:
 Visible arch: ${analysis.visible_arch}
@@ -358,7 +370,7 @@ function normalizeQualityReport(value: Partial<QualityReport>): QualityReport {
     user_message:
       typeof value.user_message === "string" && value.user_message.trim()
         ? value.user_message.trim()
-        : "La foto non consente una simulazione sufficientemente affidabile. Prova con una foto piu nitida, frontale e con i denti ben visibili.",
+        : "La foto non consente una simulazione stabile. Prova con una foto piu nitida, frontale e con i denti ben visibili.",
   };
 }
 
@@ -461,7 +473,7 @@ export async function POST(request: Request) {
         bestResult = generatedBuffer;
       }
 
-      if (review.approved && review.score >= 82) {
+      if (review.approved && review.score >= ACCEPTABLE_PREVIEW_SCORE) {
         bestReview = review;
         bestResult = generatedBuffer;
         break;
@@ -470,7 +482,7 @@ export async function POST(request: Request) {
       retryGuidance = review.retry_guidance;
     }
 
-    if (!bestResult || !bestReview || bestReview.score < 65) {
+    if (!bestResult || !bestReview) {
       return NextResponse.json(
         {
           is_rejected: true,
@@ -483,6 +495,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const previewWarning =
+      bestReview.score < ACCEPTABLE_PREVIEW_SCORE
+        ? "Preview generata come simulazione illustrativa. Il risultato potrebbe richiedere valutazione dello studio."
+        : undefined;
+
     const resultBase64 = bestResult.toString("base64");
     const outputUrl = `data:image/png;base64,${resultBase64}`;
 
@@ -493,6 +510,7 @@ export async function POST(request: Request) {
       autoTreatments: analysis.treatments,
       qualityScore: bestReview.score,
       qualityIssues: bestReview.issues,
+      previewWarning,
       is_rejected: false,
     });
   } catch (error: unknown) {
