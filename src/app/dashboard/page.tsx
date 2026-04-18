@@ -11,17 +11,17 @@ import {
 // 📊 Mock Data (بيانات وهمية تظهر في الفيديو عشان تبهر العميل)
 // =====================================================================
 const stats = [
-  { title: "Nuovi Lead (Mese)", value: "142", icon: Users, color: "text-blue-600", bg: "bg-blue-100", trend: "+12%" },
-  { title: "Tasso di Conversione", value: "38%", icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-100", trend: "+5.2%" },
-  { title: "Valore Potenziale", value: "€ 45.500", icon: Euro, color: "text-indigo-600", bg: "bg-indigo-100", trend: "+18%" },
+  { title: "Richieste generate", value: "142", icon: Users, color: "text-blue-600", bg: "bg-blue-100", trend: "+12%" },
+  { title: "Contatti qualificati", value: "38%", icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-100", trend: "+5.2%" },
+  { title: "Valore opportunita'", value: "EUR 45.500", icon: Euro, color: "text-indigo-600", bg: "bg-indigo-100", trend: "+18%" },
 ];
 
 const recentLeads = [
-  { id: 1, name: "Ahmed Hassan", phone: "+39 333 1234567", diagnosis: "Sbiancamento + Faccette (Denti ingialliti e spazi)", score: 45, date: "Oggi, 10:30", status: "Nuovo" },
-  { id: 2, name: "Giulia Bianchi", phone: "+39 340 9876543", diagnosis: "Impianti (Denti mancanti arcata superiore)", score: 32, date: "Oggi, 09:15", status: "Contattato" },
-  { id: 3, name: "Marco Rossi", phone: "+39 331 4567890", diagnosis: "Allineatori Trasparenti (Affollamento lieve)", score: 78, date: "Ieri, 16:45", status: "In visita" },
-  { id: 4, name: "Sofia Ricci", phone: "+39 328 1122334", diagnosis: "Restauro Estetico Completo (Usura dentale)", score: 55, date: "Ieri, 11:20", status: "Nuovo" },
-  { id: 5, name: "Lorenzo Romano", phone: "+39 345 6677889", diagnosis: "Sbiancamento Dentale (Discromia lieve)", score: 82, date: "2 giorni fa", status: "Chiuso" },
+  { id: 1, name: "Ahmed Hassan", phone: "+39 333 1234567", diagnosis: "Interessato a sbiancamento e faccette", score: 45, date: "Oggi, 10:30", status: "Nuovo" },
+  { id: 2, name: "Giulia Bianchi", phone: "+39 340 9876543", diagnosis: "Ha richiesto una valutazione per impianti", score: 32, date: "Oggi, 09:15", status: "Contattato" },
+  { id: 3, name: "Marco Rossi", phone: "+39 331 4567890", diagnosis: "Interessato ad allineatori trasparenti", score: 78, date: "Ieri, 16:45", status: "In visita" },
+  { id: 4, name: "Sofia Ricci", phone: "+39 328 1122334", diagnosis: "Vuole migliorare estetica e armonia del sorriso", score: 55, date: "Ieri, 11:20", status: "Nuovo" },
+  { id: 5, name: "Lorenzo Romano", phone: "+39 345 6677889", diagnosis: "Ha scaricato la simulazione per sbiancamento", score: 82, date: "2 giorni fa", status: "Chiuso" },
 ];
 
 export default function DashboardPage() {
@@ -32,7 +32,7 @@ export default function DashboardPage() {
       <aside className="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex">
         <div className="p-6 border-b border-slate-100">
           <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-            <Sparkles className="text-blue-600" /> IA Pro <span className="text-blue-600">Admin</span>
+            <Sparkles className="text-blue-600" /> Smile Leads <span className="text-blue-600">Pro</span>
           </h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
@@ -40,13 +40,13 @@ export default function DashboardPage() {
             <LayoutDashboard size={20} /> Dashboard
           </a>
           <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition-colors">
-            <Users size={20} /> Pazienti (Leads)
+            <Users size={20} /> Lead pazienti
           </a>
           <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition-colors">
-            <Calendar size={20} /> Appuntamenti
+            <Calendar size={20} /> Visite da fissare
           </a>
           <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-50 hover:text-slate-700 rounded-xl font-semibold transition-colors">
-            <Settings size={20} /> Impostazioni Clinica
+            <Settings size={20} /> Impostazioni studio
           </a>
         </nav>
         <div className="p-4 border-t border-slate-100">
@@ -56,7 +56,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-sm font-bold">Studio Alessandro</p>
-              <p className="text-xs text-slate-500">Piano Premium</p>
+              <p className="text-xs text-slate-500">Abbonamento attivo</p>
             </div>
           </div>
         </div>
@@ -67,11 +67,11 @@ export default function DashboardPage() {
         
         {/* HEADER */}
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-10">
-          <h2 className="text-2xl font-bold text-slate-800">Panoramica Clinica</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Dashboard acquisizione pazienti</h2>
           <div className="flex items-center gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input type="text" placeholder="Cerca paziente..." className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64" />
+              <input type="text" placeholder="Cerca lead o telefono..." className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64" />
             </div>
             <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
               <Bell size={24} />
@@ -104,7 +104,7 @@ export default function DashboardPage() {
           {/* CRM TABLE */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-lg font-bold text-slate-800">Leads Recenti (Generati dall'IA)</h3>
+              <h3 className="text-lg font-bold text-slate-800">Nuove richieste dalla simulazione sorriso</h3>
               <button className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
                 Vedi tutti <ChevronRight size={16} />
               </button>
@@ -114,11 +114,11 @@ export default function DashboardPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
-                    <th className="px-6 py-4 font-bold">Paziente</th>
-                    <th className="px-6 py-4 font-bold">Punteggio IA</th>
-                    <th className="px-6 py-4 font-bold">Diagnosi Estetica</th>
+                    <th className="px-6 py-4 font-bold">Lead</th>
+                    <th className="px-6 py-4 font-bold">Priorita</th>
+                    <th className="px-6 py-4 font-bold">Interesse dichiarato</th>
                     <th className="px-6 py-4 font-bold">Data</th>
-                    <th className="px-6 py-4 font-bold text-right">Azione (Contatta)</th>
+                    <th className="px-6 py-4 font-bold text-right">Follow-up</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

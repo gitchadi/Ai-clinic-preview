@@ -46,10 +46,10 @@ export default function Page() {
 
     setStatus('analyzing');
     const scanningSteps = [
-      "Scansione IA del viso in corso...", 
-      "Rilevamento imperfezioni dentali...", 
-      "Elaborazione piano di trattamento automatico...",
-      "Applicazione della Magia Clinica..."
+      "Analisi del tuo sorriso in corso...", 
+      "Studio delle possibili aree di miglioramento...", 
+      "Creazione della simulazione estetica...",
+      "Preparazione della tua anteprima personalizzata..."
     ];
     
     for (let i = 0; i < scanningSteps.length; i++) {
@@ -126,11 +126,11 @@ export default function Page() {
     pdf.setTextColor(255, 255, 255);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(24);
-    pdf.text("CLINICA DENTALE PRO", 20, 25);
+    pdf.text("SMILE PREVIEW IA", 20, 25);
     
     pdf.setTextColor(30, 41, 59);
     pdf.setFontSize(16);
-    pdf.text("Report di Consultazione Estetica (IA)", 20, 55);
+    pdf.text("Riepilogo della tua simulazione estetica", 20, 55);
 
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
@@ -139,7 +139,7 @@ export default function Page() {
     pdf.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, 150, 65);
     
     pdf.setFont("helvetica", "bold");
-    pdf.text("Diagnosi AI (Estetica):", 20, 80);
+    pdf.text("Osservazioni estetiche IA:", 20, 80);
     pdf.setFont("helvetica", "normal");
     
     const textLines = pdf.splitTextToSize(aiDiagnosis, 170);
@@ -148,8 +148,8 @@ export default function Page() {
     
     const selectedNames = appliedTreatments.join(' + ');
     pdf.setFont("helvetica", "bold");
-    pdf.text(`Trattamenti Consigliati dall'IA: ${selectedNames}`, 20, 90 + offset);
-    pdf.text(`Punteggio Sorriso Finale Previsto: 98/100`, 20, 97 + offset);
+    pdf.text(`Miglioramenti simulati: ${selectedNames}`, 20, 90 + offset);
+    pdf.text(`Armonia del sorriso simulata: 98/100`, 20, 97 + offset);
 
     pdf.text("PRIMA:", 20, 115 + offset);
     pdf.addImage(previewUrl, 'JPEG', 20, 120 + offset, 80, 80);
@@ -170,19 +170,19 @@ export default function Page() {
       pdf.setTextColor(30, 41, 59);
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Condividi la Magia!", 60, qrY + 12);
+      pdf.text("Rivedi la tua anteprima del sorriso", 60, qrY + 12);
       
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Inquadra il QR Code con la fotocamera per vedere il risultato interattivo", 60, qrY + 18);
-      pdf.text("e prenota la tua visita con la promozione esclusiva.", 60, qrY + 23);
+      pdf.text("Inquadra il QR Code per rivedere il confronto prima/dopo", 60, qrY + 18);
+      pdf.text("e richiedere una valutazione personalizzata allo studio.", 60, qrY + 23);
     } catch (err) {
       console.error("QR Error", err);
     }
 
     pdf.setFontSize(8);
     pdf.setTextColor(150, 150, 150);
-    pdf.text("Disclaimer: Il risultato dell'IA è solo illustrativo. Non costituisce diagnosi medica definitiva.", 20, 280);
+    pdf.text("Disclaimer: la preview IA e' illustrativa. Non costituisce diagnosi, piano terapeutico o garanzia di risultato.", 20, 280);
     pdf.save(`Report_IA_${patientName.replace(/\s+/g, '_')}.pdf`);
   };
 
@@ -192,10 +192,10 @@ export default function Page() {
         
         <div className="text-center mb-10 flex flex-col items-center justify-center animate-in slide-in-from-top-4 duration-700">
           <h1 className="text-5xl font-extrabold text-slate-800 tracking-tight mb-2">
-            Clinica Dentale IA <span className="text-blue-600">Pro</span>
+            Scopri il tuo sorriso <span className="text-blue-600">in anteprima</span>
           </h1>
           <p className="mt-3 text-slate-500 text-lg font-medium max-w-2xl bg-blue-50 px-4 py-2 rounded-full border border-blue-100">
-            ✨ Il primo sistema Magico 1-Click per il tuo nuovo sorriso
+            Carica una foto e guarda una simulazione realistica di come potrebbe migliorare il tuo sorriso
           </p>
         </div>
 
@@ -211,8 +211,8 @@ export default function Page() {
                   <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
                     <UploadCloud size={40} className="text-blue-500" />
                   </div>
-                  <p className="font-bold text-xl text-slate-700">Carica una foto</p>
-                  <p className="text-sm mt-2 text-slate-400 max-w-[200px] leading-relaxed">Il nostro sistema IA rileverà automaticamente i difetti e li correggerà.</p>
+                  <p className="font-bold text-xl text-slate-700">Carica una foto del tuo sorriso</p>
+                  <p className="text-sm mt-2 text-slate-400 max-w-[240px] leading-relaxed">L&apos;IA creerà una simulazione estetica per aiutarti a immaginare il possibile risultato dopo un percorso personalizzato.</p>
                 </div>
               )}
             </div>
@@ -224,7 +224,7 @@ export default function Page() {
                     <Activity size={32} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Punteggio Iniziale</p>
+                    <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Armonia del sorriso simulata</p>
                     <div className="w-full bg-slate-100 rounded-full h-3 mt-2 overflow-hidden shadow-inner">
                       <div className="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-red-400 via-yellow-400 to-green-500" style={{ width: `${smileScore}%` }}></div>
                     </div>
@@ -234,7 +234,7 @@ export default function Page() {
                 
                 {aiDiagnosis && (
                   <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                    <h4 className="font-black text-slate-800 flex items-center gap-2 mb-3"><Wand2 size={20} className="text-blue-500" /> Trattamenti IA Applicati:</h4>
+                    <h4 className="font-black text-slate-800 flex items-center gap-2 mb-3"><Wand2 size={20} className="text-blue-500" /> Miglioramenti simulati:</h4>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {appliedTreatments.map((t, idx) => (
                         <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">{t}</span>
@@ -256,7 +256,7 @@ export default function Page() {
                   className="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 cursor-pointer focus:ring-blue-500"
                 />
                 <label htmlFor="gdpr" className="text-xs text-slate-500 leading-relaxed cursor-pointer">
-                  Acconsento al trattamento dell'immagine per la simulazione estetica ai sensi del <strong className="text-slate-700">GDPR (Regolamento UE 2016/679)</strong>.
+                  Autorizzo l&apos;utilizzo della mia immagine per generare una simulazione estetica illustrativa ai sensi del <strong className="text-slate-700">GDPR (Regolamento UE 2016/679)</strong>.
                 </label>
               </div>
             )}
@@ -267,14 +267,14 @@ export default function Page() {
                 disabled={!selectedImage || !gdprConsent || status === 'analyzing' || status === 'generating'}
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-300 text-white font-black py-5 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all text-xl flex justify-center items-center gap-3 disabled:hover:translate-y-0"
               >
-                {status === 'idle' && <span className="flex items-center gap-2"><Wand2 size={24} /> Magia Automatica (1-Click)</span>}
+                {status === 'idle' && <span className="flex items-center gap-2"><Wand2 size={24} /> Vedi il mio sorriso in anteprima</span>}
                 {(status === 'analyzing' || status === 'generating') && <span className="flex items-center gap-2"><Sparkles className="animate-spin" size={24} /> {analysisText}</span>}
               </button>
             )}
             
             {status === 'done' && (
               <div className="w-full bg-green-50 border-2 border-green-500 text-green-700 font-black py-5 rounded-2xl shadow-md text-xl flex justify-center items-center gap-3 animate-in zoom-in">
-                <CheckCircle size={28} /> Sorriso Perfetto Generato!
+                <CheckCircle size={28} /> La tua anteprima è pronta
               </div>
             )}
           </div>
@@ -287,9 +287,9 @@ export default function Page() {
                   <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-white">
                     <Lock size={36} />
                   </div>
-                  <h3 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Quasi Fatto!</h3>
+                  <h3 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">La tua anteprima è pronta</h3>
                   <p className="text-slate-500 text-sm mb-8 leading-relaxed px-4">
-                    La magia IA è pronta. Inserisci i tuoi dati corretti per sbloccare la foto del tuo nuovo sorriso e scaricare il referto medico.
+                    Lascia nome e telefono per vedere il confronto completo e ricevere una valutazione personalizzata dallo studio.
                   </p>
                   
                   <form onSubmit={handleLeadSubmit} className="space-y-4">
@@ -325,7 +325,7 @@ export default function Page() {
                       type="submit" 
                       className="w-full bg-slate-900 hover:bg-black text-white font-black py-4 rounded-2xl flex justify-center items-center gap-2 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 mt-4 text-lg"
                     >
-                      Sblocca Risultato <Sparkles size={20} />
+                      Guarda il risultato <Sparkles size={20} />
                     </button>
                   </form>
                 </div>
@@ -348,7 +348,7 @@ export default function Page() {
                   />
                 </div>
                 <button onClick={generatePDF} className="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black text-lg flex justify-center items-center gap-3 transition-all max-w-md mx-auto shadow-xl hover:shadow-2xl hover:-translate-y-1">
-                  <Download size={24} /> Scarica Referto PDF con QR
+                  <Download size={24} /> Scarica la mia simulazione
                 </button>
               </div>
             ) : (
@@ -366,7 +366,7 @@ export default function Page() {
                       <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                         <ShieldAlert size={64} className="opacity-20 text-slate-600" />
                       </div>
-                      <p className="text-lg font-bold text-slate-400">La magia apparirà qui</p>
+                      <p className="text-lg font-bold text-slate-400">La simulazione del tuo sorriso apparirà qui</p>
                     </>
                   )}
                 </div>
