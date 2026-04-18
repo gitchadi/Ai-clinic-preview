@@ -18,7 +18,6 @@ export default function Page() {
   const [smileScore, setSmileScore] = useState<number | null>(null);
   const [aiDiagnosis, setAiDiagnosis] = useState<string | null>(null);
   const [appliedTreatments, setAppliedTreatments] = useState<string[]>([]); 
-  const [previewWarning, setPreviewWarning] = useState<string | null>(null);
 
   const [patientName, setPatientName] = useState<string>('');
   const [patientPhone, setPatientPhone] = useState<string>('');
@@ -35,7 +34,6 @@ export default function Page() {
       setSmileScore(null);
       setAiDiagnosis(null);
       setAppliedTreatments([]);
-      setPreviewWarning(null);
       setPatientName('');
       setPatientPhone('');
       setFormError(null);
@@ -86,11 +84,9 @@ export default function Page() {
         setSmileScore(data.realSmileScore || 98);
         setAiDiagnosis(data.aiAnalysisText || "Simulazione completata con successo.");
         setAppliedTreatments(data.autoTreatments || ["Restauro Estetico Completo"]);
-        setPreviewWarning(data.previewWarning || null);
         setStatus('lead_capture'); 
       } else {
-        const errorData = await response.json().catch(() => null);
-        alert(errorData?.message || errorData?.error || "Ops! Errore di elaborazione. Riprova con un'altra foto.");
+        alert("Ops! Errore di elaborazione. Riprova con un'altra foto.");
         setStatus('idle');
       }
     } catch (error) {
@@ -244,12 +240,6 @@ export default function Page() {
                         <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">{t}</span>
                       ))}
                     </div>
-                    {previewWarning && (
-                      <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-left text-xs font-semibold text-amber-700">
-                        <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                        <p>{previewWarning}</p>
-                      </div>
-                    )}
                     <p className="text-slate-600 text-sm leading-relaxed border-t border-slate-200 pt-3">{aiDiagnosis}</p>
                   </div>
                 )}

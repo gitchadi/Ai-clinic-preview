@@ -2,16 +2,12 @@ import fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 
-const STABILITY_KEY = process.env.STABILITY_API_KEY;
+const STABILITY_KEY = "sk-rq1zuNg3PuJu3z0RBs2vcP9aUFySNYN4V1rmyaII2VcC3lP1"; 
 
 async function smartReplace() {
     console.log("🎯 Running Smart Search & Replace (Face remains 100% untouched)...");
 
     try {
-        if (!STABILITY_KEY) {
-            throw new Error("STABILITY_API_KEY is not configured.");
-        }
-
         const formData = new FormData();
         // بنبعت الصورة الأصلية بس
         formData.append('image', fs.createReadStream('original.png'));
